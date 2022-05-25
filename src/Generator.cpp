@@ -1,4 +1,5 @@
 #include "Generator.hpp"
+#include "Util.hpp"
 
 int Generator::MAX_STR_LEN = 10;
 int Generator::MIN_STR_LEN = 2;
@@ -6,17 +7,18 @@ int Generator::DATASET_SIZE = 50000;
 char *Generator::LETTERS = (char *)malloc(Generator::LETTER_COUNT * sizeof (char));
 int Generator::WORLD_SIZE = 1;
 int *Generator::SCATTER_SEND_BUFFER = nullptr;
+int *Generator::GATHER_RECV_COUNTS = nullptr;
+int *Generator::GATHER_DISPLACEMENTS = nullptr;
 char *Generator::ALL_WORDS = nullptr;
-int Generator::ELEMENTS_PER_PROC = DATASET_SIZE;
 
 
 void Generator::validate(int argc, char **argv){
 
     if (Generator::WORLD_SIZE > 100)
-        throw invalid_argument("WORLD_SIZE can be 100 at max");
+        throw invalid_argument("MPI_WORLD_SIZE can be 100 at max");
 
     if (Generator::WORLD_SIZE < 1)
-        throw invalid_argument("WORLD_SIZE can't be lowest from 1");
+        throw invalid_argument("MPI_WORLD_SIZE can't be lowest from 1");
         
     if (argc < 2)
         throw invalid_argument("CLI arguments must have 2 arguments at least");
@@ -24,11 +26,13 @@ void Generator::validate(int argc, char **argv){
     Generator::DATASET_SIZE = atoi(argv[1]);
 
     if (strlen(argv[1]) > 7 || Generator::DATASET_SIZE > 1000000)
-        throw invalid_argument("MPI_DATASET_SIZE can be 1M at max");
+        throw invalid_argument("DATASET_SIZE can be 1M at max");
 
     if (Generator::DATASET_SIZE <= 0)
-        throw invalid_argument("MPI_DATASET_SIZE can't be zero or negative");
-    
+        throw invalid_argument("DATASET_SIZE can't be zero or negative");
+
+    if (Generator::WORLD_SIZE > Generator::DATASET_SIZE)
+        throw invalid_argument("DATASET_SIZE can't be lower from WORLD_SIZE");
 
     Generator::MAX_STR_LEN = 10;
     if (argc > 2)
@@ -53,7 +57,6 @@ void Generator::validate(int argc, char **argv){
     if (Generator::MIN_STR_LEN >= Generator::MAX_STR_LEN)
         throw invalid_argument("MIN_STR_LEN has to be lowest from MAX_STR_LEN");
 
-    Generator::ELEMENTS_PER_PROC = Generator::DATASET_SIZE / Generator::WORLD_SIZE;
 
 }
 
@@ -62,19 +65,7 @@ void Generator::createLetters(){
         Generator::LETTERS[i] = 'A' + i;
 }
 
-string Generator::getNowTime(){
-    time_t curr_time;
-	tm * curr_tm;
-	char date_string[100];
-	char time_string[100];
-	
-	time(&curr_time);
-	curr_tm = localtime(&curr_time);
-	
-	strftime(date_string, 50, "%Y_%d_%m-%H_%M_%S", curr_tm);
 
-    return date_string;
-}
 
 Generator::Generator(int argc, char **argv){
     Generator::validate(argc, argv);
@@ -84,9 +75,32 @@ Generator::Generator(int argc, char **argv){
 Generator::Generator(){}
 
 void Generator::CreateSendData(){
+    int total = Generator::DATASET_SIZE;
+    int element_per_process = Generator::DATASET_SIZE / Generator::WORLD_SIZE; 
     Generator::SCATTER_SEND_BUFFER = (int *)malloc(Generator::WORLD_SIZE * sizeof(int));
-    for (int i = 0; i < Generator::WORLD_SIZE; i++)
-        SCATTER_SEND_BUFFER[i] = Generator::ELEMENTS_PER_PROC;
+    for (int i = 0; i < Generator::WORLD_SIZE; i++){
+        Generator::SCATTER_SEND_BUFFER[i] = total > element_per_process ? element_per_process: total;
+        total -= Generator::SCATTER_SEND_BUFFER[i];
+    }
+    if (total > 0)
+        for (int i = 0; i < total; i++)
+            Generator::SCATTER_SEND_BUFFER[i] += 1;
+}
+
+void Generator::CreateRecvCountsAndDisplacements(){
+    if (Generator::SCATTER_SEND_BUFFER == NULL)
+        Generator::CreateSendData();
+    
+    Generator::GATHER_DISPLACEMENTS = (int *)malloc(Generator::WORLD_SIZE * sizeof(int));
+    Generator::GATHER_RECV_COUNTS = (int *)malloc(Generator::WORLD_SIZE * sizeof(int));
+    
+    Generator::GATHER_DISPLACEMENTS[0] = 0;
+    Generator::GATHER_RECV_COUNTS[0] = Generator::SCATTER_SEND_BUFFER[0] * Generator::MAX_STR_LEN;
+    
+    for (int i = 1; i < Generator::WORLD_SIZE; i++){
+        Generator::GATHER_DISPLACEMENTS[i] = i * Generator::SCATTER_SEND_BUFFER[i - 1] * Generator::MAX_STR_LEN;
+        Generator::GATHER_RECV_COUNTS[i] = Generator::SCATTER_SEND_BUFFER[i] * Generator::MAX_STR_LEN;
+    }
 }
 
 void Generator::CreateWord(char **word){
@@ -116,7 +130,7 @@ void Generator::CreateWords(char *arr, int buff_size){
 }
 
 void Generator::WorkingTime(double start_time, double end_time){
-    printf("That took %f seconds\n", end_time - start_time);
+    printf("\nThat generation took %f seconds(without writings and printings).\n", end_time - start_time);
 }
 
 void Generator::PrintWord(char *word){
@@ -132,7 +146,8 @@ void Generator::PrintWord(char *word){
 
 void Generator::WriteWords(){
     ofstream f;
-    f.open ("./results/" + Generator::getNowTime() + ".txt");
+    string filename = Util::GetNowTime();
+    f.open ("./results/" + filename + ".txt");
     for (int i = 0; i < Generator::DATASET_SIZE; i++){
         for (int j = 0; j < Generator::MAX_STR_LEN; j++)
         {
@@ -143,6 +158,7 @@ void Generator::WriteWords(){
         f << " ";
     }
     f.close();
+    cout << endl << "Words written to file " << filename << ".txt";
 }
 
 void Generator::PrintWords(){

@@ -13,6 +13,8 @@
 class Util {
   public:
     void static Clear();
+    void static PrintArray(int *arr, int size);
+    string static GetNowTime();
 };
 
 #endif

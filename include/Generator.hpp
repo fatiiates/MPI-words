@@ -14,7 +14,6 @@ class Generator {
   private:
     void static validate(int argc, char **argv);
     void static createLetters();
-    string static getNowTime();
 
   public:
     static int const LETTER_COUNT = 26;
@@ -24,11 +23,13 @@ class Generator {
     static char *LETTERS;
     static int WORLD_SIZE;
     static int *SCATTER_SEND_BUFFER;
+    static int *GATHER_RECV_COUNTS;
+    static int *GATHER_DISPLACEMENTS;
     static char *ALL_WORDS;
-    static int ELEMENTS_PER_PROC;
     Generator(int argc, char **argv);
     Generator();
     void static CreateSendData();
+    void static CreateRecvCountsAndDisplacements();
     void static CreateWord(char **word);
     void static CreateWords(char *arr, int buff_size);
     void static WorkingTime(double start_time, double end_time);
