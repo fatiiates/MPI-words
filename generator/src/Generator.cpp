@@ -15,10 +15,10 @@ char *Generator::ALL_WORDS = nullptr;
 void Generator::validate(int argc, char **argv){
 
     if (Generator::WORLD_SIZE > 100)
-        throw invalid_argument("MPI_WORLD_SIZE can be 100 at max");
+        throw invalid_argument("WORLD_SIZE can be 100 at max");
 
     if (Generator::WORLD_SIZE < 1)
-        throw invalid_argument("MPI_WORLD_SIZE can't be lowest from 1");
+        throw invalid_argument("WORLD_SIZE can't be lowest from 1");
         
     if (argc < 2)
         throw invalid_argument("CLI arguments must have 2 arguments at least");
