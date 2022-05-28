@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -11,6 +13,7 @@ import (
 
 var (
 	RESULTS_PATH = "../generator/results"
+	BUFF_SIZE    = 8
 )
 
 type Util struct{}
@@ -20,10 +23,21 @@ type File struct {
 	created_date time.Time
 }
 
+type Word struct {
+	word            string
+	isLeftComplete  bool
+	isRightComplete bool
+}
+
+type Result struct {
+	words             map[string]int
+	uncompleted_words []Word
+}
+
 func discoverFiles() ([]File, error) {
 	fs, err := ioutil.ReadDir(RESULTS_PATH)
 	if err != nil {
-		log.Fatal(err)
+		Check(err)
 	}
 
 	files := []File{}
@@ -45,7 +59,7 @@ func discoverFiles() ([]File, error) {
 	}
 
 	if len(files) == 0 {
-		return nil, errors.New("There is no generated file in " + RESULTS_PATH)
+		return nil, errors.New("There is no generated file in " + RESULTS_PATH + ". Please give a specific file with COUNT_FILE variable")
 	}
 
 	return files, nil
@@ -66,8 +80,73 @@ func GetLastCreatedFile() string {
 	return latest_file.name
 }
 
+func CountWords(size int, filename string, process_number int, offset int) (*Result, error) {
+
+	var res Result = Result{
+		make(map[string]int),
+		[]Word{},
+	}
+
+	var counter int = size
+
+	f, err := os.Open(filename)
+	Check(err)
+	_, err = f.Seek(int64(offset), 0)
+	Check(err)
+
+	buff := make([]byte, BUFF_SIZE)
+	var tmp string
+
+	for counter != 0 {
+		bytes, err := f.Read(buff)
+		Check(err)
+
+		if counter < BUFF_SIZE {
+			bytes = counter
+		}
+
+		index := 0
+		for i := 0; i < bytes; i++ {
+			if buff[i] == ' ' {
+				tmp += string(buff[:i])
+				if len(res.uncompleted_words) == 0 {
+					AppendToArray(&res.uncompleted_words, Word{
+						tmp,
+						index != 0,
+						true,
+					})
+				} else {
+					res.words[tmp]++
+				}
+				tmp = ""
+				index = i + 1
+			}
+		}
+		counter -= bytes
+		tmp += string(buff[index:bytes])
+	}
+
+	if tmp != "" {
+		AppendToArray(&res.uncompleted_words, Word{
+			tmp,
+			len(res.uncompleted_words) > 0 || len(res.words) > 0,
+			false,
+		})
+	}
+
+	if len(res.uncompleted_words) == 0 && len(res.words) == 0 {
+		return nil, errors.New("there is no value in process " + fmt.Sprint(process_number))
+	}
+
+	return &res, nil
+}
+
+func AppendToArray[T comparable](arr *[]T, val T) {
+	*arr = append(*arr, val)
+}
+
 func Check(err error) {
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
