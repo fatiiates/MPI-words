@@ -1,4 +1,18 @@
-all: build_generator run_generator
+all: builder runner
+
+builder: build_generator build_counter
+runner: run_generator run_counter
+
+BR_generator: build_generator run_generator
+
+BR_counter: build_counter run_counter
+
+build_counter:
+	cd counter && go build -o ./bin
+	clear
+
+run_counter:
+	cd counter && ./bin/counter $(WORLD_SIZE) $(GENERATED_FILE_PATH)
 
 build_generator:
 	clear

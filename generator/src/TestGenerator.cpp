@@ -7,7 +7,7 @@ int main(int argc, char **argv)
 {
     Util::Clear();
 
-    cout << "<<<==========GENERATION TEST START=========>>>" << endl;
+    cout << "<<<==========GENERATION START=========>>>" << endl;
 
     double start_time, end_time;
 
@@ -20,8 +20,6 @@ int main(int argc, char **argv)
     if (world_rank == 0){
         Generator::CreateSendData();
         Generator::CreateRecvCountsAndDisplacements();
-        cout << "SCATTERED DATA SIZE PER PROCESS => ";
-        Util::PrintArray(Generator::SCATTER_SEND_BUFFER, Generator::WORLD_SIZE);
     }
     
     start_time = MPI_Wtime();
@@ -35,7 +33,6 @@ int main(int argc, char **argv)
 
     char *words = (char *)malloc(sizeof(char) * scatter_recv_buffer * Generator::MAX_STR_LEN);
     Generator::CreateWords(words, scatter_recv_buffer);
-    // Generator::PrintWords(words, scatter_recv_buffer);
 
     if (world_rank == 0)
         Generator::ALL_WORDS = (char *)malloc(sizeof(char) * Generator::DATASET_SIZE * Generator::MAX_STR_LEN);
@@ -45,11 +42,11 @@ int main(int argc, char **argv)
 
     if (world_rank == 0)
     {
-        end_time = MPI_Wtime();
         Generator::WriteWords();
+        end_time = MPI_Wtime();
         Generator::WorkingTime(start_time, end_time);
         delete generator;
-        cout << "<<<===========GENERATION TEST END==========>>>" << endl;
+        cout << "<<<===========GENERATION END==========>>>" << endl;
     } 
 
     MPI_Finalize();

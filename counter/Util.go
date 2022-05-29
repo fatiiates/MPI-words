@@ -9,11 +9,14 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 var (
-	RESULTS_PATH = "../generator/results"
-	BUFF_SIZE    = 8
+	GENERATION_RESULTS_PATH = "../generator/results"
+	COUNTING_RESULTS_PATH   = "./results"
+	BUFF_SIZE               = 64
 )
 
 type Util struct{}
@@ -34,8 +37,13 @@ type Result struct {
 	uncompleted_words []Word
 }
 
+type YamlFormat struct {
+	Result         *map[string]int `yaml:"words"`
+	TotalWordCount int             `yaml:"total_word_count"`
+}
+
 func discoverFiles() ([]File, error) {
-	fs, err := ioutil.ReadDir(RESULTS_PATH)
+	fs, err := ioutil.ReadDir(GENERATION_RESULTS_PATH)
 	if err != nil {
 		Check(err)
 	}
@@ -59,7 +67,7 @@ func discoverFiles() ([]File, error) {
 	}
 
 	if len(files) == 0 {
-		return nil, errors.New("There is no generated file in " + RESULTS_PATH + ". Please give a specific file with COUNT_FILE variable")
+		return nil, errors.New("There is no generated file in " + GENERATION_RESULTS_PATH + ". Please give a specific file with COUNT_FILE variable")
 	}
 
 	return files, nil
@@ -82,6 +90,13 @@ func GetLastCreatedFile() string {
 
 func CountWords(size int, filename string, process_number int, offset int) (*Result, error) {
 
+	f, err := os.Open(filename)
+	Check(err)
+	defer f.Close()
+
+	_, err = f.Seek(int64(offset), 0)
+	Check(err)
+
 	var res Result = Result{
 		make(map[string]int),
 		[]Word{},
@@ -89,47 +104,45 @@ func CountWords(size int, filename string, process_number int, offset int) (*Res
 
 	var counter int = size
 
-	f, err := os.Open(filename)
-	Check(err)
-	_, err = f.Seek(int64(offset), 0)
-	Check(err)
-
 	buff := make([]byte, BUFF_SIZE)
 	var tmp string
-
+	var leftIndex int
 	for counter != 0 {
 		bytes, err := f.Read(buff)
 		Check(err)
-
+		// fmt.Println("BUFF ", process_number, string(buff))
 		if counter < BUFF_SIZE {
 			bytes = counter
 		}
-
-		index := 0
+		leftIndex = 0
 		for i := 0; i < bytes; i++ {
 			if buff[i] == ' ' {
-				tmp += string(buff[:i])
+				tmp += string(buff[leftIndex:i])
+				if tmp == "" {
+					leftIndex = i + 1
+					continue
+				}
 				if len(res.uncompleted_words) == 0 {
 					AppendToArray(&res.uncompleted_words, Word{
 						tmp,
-						index != 0,
+						leftIndex != 0,
 						true,
 					})
 				} else {
 					res.words[tmp]++
 				}
+				leftIndex = i + 1
 				tmp = ""
-				index = i + 1
 			}
 		}
 		counter -= bytes
-		tmp += string(buff[index:bytes])
+		tmp += string(buff[leftIndex:bytes])
 	}
 
 	if tmp != "" {
 		AppendToArray(&res.uncompleted_words, Word{
 			tmp,
-			len(res.uncompleted_words) > 0 || len(res.words) > 0,
+			len(res.uncompleted_words) > 0 || len(res.words) > 0 || leftIndex != 0,
 			false,
 		})
 	}
@@ -143,6 +156,26 @@ func CountWords(size int, filename string, process_number int, offset int) (*Res
 
 func AppendToArray[T comparable](arr *[]T, val T) {
 	*arr = append(*arr, val)
+}
+
+func WriteResultsToFile(c *Counter) {
+	dt := time.Now()
+	filename := dt.Format("2006_02_01-15_04_05") + ".yaml"
+
+	yaml_result := YamlFormat{
+		&c.results_map,
+		c.total_word_count,
+	}
+	yamlData, err := yaml.Marshal(&yaml_result)
+	Check(err)
+
+	err = os.WriteFile(strings.Join([]string{COUNTING_RESULTS_PATH, filename}, "/"), yamlData, 0644)
+	Check(err)
+}
+
+func WorkingTime(start_time time.Time) {
+	out := time.Since(start_time)
+	fmt.Printf("\nThat generation took %v seconds.\n", out.Seconds())
 }
 
 func Check(err error) {

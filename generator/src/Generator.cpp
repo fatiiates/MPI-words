@@ -48,14 +48,14 @@ void Generator::validate(int argc, char **argv){
     if (argc > 3)
        Generator::MIN_STR_LEN = atoi(argv[3]);
 
-    if (Generator::MIN_STR_LEN > 99)
-        throw invalid_argument("MIN_STR_LEN can be 99 at max");
+    if (Generator::MIN_STR_LEN > 100)
+        throw invalid_argument("MIN_STR_LEN can be 100 at max");
 
     if (Generator::MIN_STR_LEN < 1)
         throw invalid_argument("MIN_STR_LEN can't be lowest from 1");
 
-    if (Generator::MIN_STR_LEN >= Generator::MAX_STR_LEN)
-        throw invalid_argument("MIN_STR_LEN has to be lowest from MAX_STR_LEN");
+    if (Generator::MIN_STR_LEN > Generator::MAX_STR_LEN)
+        throw invalid_argument("MIN_STR_LEN has to be lowest or equal to MAX_STR_LEN");
 
 
 }
@@ -96,9 +96,10 @@ void Generator::CreateRecvCountsAndDisplacements(){
     
     Generator::GATHER_DISPLACEMENTS[0] = 0;
     Generator::GATHER_RECV_COUNTS[0] = Generator::SCATTER_SEND_BUFFER[0] * Generator::MAX_STR_LEN;
-    
+    int total_chars = 0;
     for (int i = 1; i < Generator::WORLD_SIZE; i++){
-        Generator::GATHER_DISPLACEMENTS[i] = i * Generator::SCATTER_SEND_BUFFER[i - 1] * Generator::MAX_STR_LEN;
+        total_chars += Generator::SCATTER_SEND_BUFFER[i - 1] * Generator::MAX_STR_LEN;
+        Generator::GATHER_DISPLACEMENTS[i] = total_chars;//i * Generator::SCATTER_SEND_BUFFER[i - 1] * Generator::MAX_STR_LEN;
         Generator::GATHER_RECV_COUNTS[i] = Generator::SCATTER_SEND_BUFFER[i] * Generator::MAX_STR_LEN;
     }
 }
@@ -130,7 +131,7 @@ void Generator::CreateWords(char *arr, int buff_size){
 }
 
 void Generator::WorkingTime(double start_time, double end_time){
-    printf("\nThat generation took %f seconds(without writings and printings).\n", end_time - start_time);
+    printf("\nThat generation took %f seconds.\n", end_time - start_time);
 }
 
 void Generator::PrintWord(char *word){
@@ -147,7 +148,7 @@ void Generator::PrintWord(char *word){
 void Generator::WriteWords(){
     ofstream f;
     string filename = Util::GetNowTime();
-    f.open ("./results/" + filename + ".txt");
+    f.open ("./generator/results/" + filename + ".txt");
     for (int i = 0; i < Generator::DATASET_SIZE; i++){
         for (int j = 0; j < Generator::MAX_STR_LEN; j++)
         {
