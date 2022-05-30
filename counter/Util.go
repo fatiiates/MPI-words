@@ -13,10 +13,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var (
+const (
 	GENERATION_RESULTS_PATH = "../generator/results"
 	COUNTING_RESULTS_PATH   = "./results"
-	BUFF_SIZE               = 64
+)
+
+var (
+	BUFF_SIZE = 64
 )
 
 type Util struct{}
@@ -67,7 +70,7 @@ func discoverFiles() ([]File, error) {
 	}
 
 	if len(files) == 0 {
-		return nil, errors.New("There is no generated file in " + GENERATION_RESULTS_PATH + ". Please give a specific file with COUNT_FILE variable")
+		return nil, errors.New("there is no generated file in " + GENERATION_RESULTS_PATH + ". Please give a specific file with COUNT_FILE variable")
 	}
 
 	return files, nil
@@ -107,10 +110,10 @@ func CountWords(size int, filename string, process_number int, offset int) (*Res
 	buff := make([]byte, BUFF_SIZE)
 	var tmp string
 	var leftIndex int
+	var leftControl bool
 	for counter != 0 {
 		bytes, err := f.Read(buff)
 		Check(err)
-		// fmt.Println("BUFF ", process_number, string(buff))
 		if counter < BUFF_SIZE {
 			bytes = counter
 		}
@@ -125,7 +128,7 @@ func CountWords(size int, filename string, process_number int, offset int) (*Res
 				if len(res.uncompleted_words) == 0 {
 					AppendToArray(&res.uncompleted_words, Word{
 						tmp,
-						leftIndex != 0,
+						leftControl,
 						true,
 					})
 				} else {
@@ -137,12 +140,13 @@ func CountWords(size int, filename string, process_number int, offset int) (*Res
 		}
 		counter -= bytes
 		tmp += string(buff[leftIndex:bytes])
+		leftControl = leftIndex != 0
 	}
 
 	if tmp != "" {
 		AppendToArray(&res.uncompleted_words, Word{
 			tmp,
-			len(res.uncompleted_words) > 0 || len(res.words) > 0 || leftIndex != 0,
+			len(res.uncompleted_words) > 0 || len(res.words) > 0 || leftControl,
 			false,
 		})
 	}
@@ -150,7 +154,6 @@ func CountWords(size int, filename string, process_number int, offset int) (*Res
 	if len(res.uncompleted_words) == 0 && len(res.words) == 0 {
 		return nil, errors.New("there is no value in process " + fmt.Sprint(process_number))
 	}
-
 	return &res, nil
 }
 
@@ -168,7 +171,7 @@ func WriteResultsToFile(c *Counter) {
 	}
 	yamlData, err := yaml.Marshal(&yaml_result)
 	Check(err)
-
+	fmt.Println(c.total_word_count)
 	err = os.WriteFile(strings.Join([]string{COUNTING_RESULTS_PATH, filename}, "/"), yamlData, 0644)
 	Check(err)
 }

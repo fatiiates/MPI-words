@@ -28,7 +28,6 @@ func (mr *MapReduce) Map() {
 		go func() {
 			defer mr.counter.wait_group.Done()
 			res, err := CountWords(size, mr.counter.filename, i, os)
-			// fmt.Println("MAP BUFF ", i, res)
 			Check(err)
 			mr.counter.mutex.Lock()
 			mr.counter.recv_buffer[i] = res
@@ -55,6 +54,7 @@ func (mr *MapReduce) mergeUncompletedWords() {
 		for _, v := range mr.counter.recv_buffer[i].uncompleted_words {
 			if tmp != "" && v.isLeftComplete {
 				mr.increaseKeyAndTotalWord(tmp, 1)
+				tmp = ""
 			}
 			if v.isRightComplete {
 				mr.increaseKeyAndTotalWord(tmp+v.word, 1)

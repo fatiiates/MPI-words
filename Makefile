@@ -11,6 +11,7 @@ build_counter:
 	cd counter && go build -o ./bin
 	clear
 
+WORLD_SIZE ?= 1
 run_counter:
 	cd counter && ./bin/counter $(WORLD_SIZE) $(GENERATED_FILE_PATH)
 
@@ -21,6 +22,7 @@ build_generator:
 
 	mpic++ -I generator/include -o generator/bin/gen_data generator/lib/Generator.o generator/lib/Util.o generator/src/TestGenerator.cpp
 
+DATASET_SIZE ?= 50000
 MAX_STR_LEN ?= 10
 MIN_STR_LEN ?= 2
 run_generator:
