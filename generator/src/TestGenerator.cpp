@@ -20,11 +20,12 @@ int main(int argc, char **argv)
     }
 
     Generator *generator = new Generator(argc, argv);
-    if (world_rank == 0){
+    if (world_rank == 0)
+    {
         Generator::CreateSendData();
         Generator::CreateRecvCountsAndDisplacements();
     }
-    
+
     start_time = MPI_Wtime();
 
     int scatter_recv_buffer;
@@ -39,7 +40,7 @@ int main(int argc, char **argv)
 
     if (world_rank == 0)
         Generator::ALL_WORDS = (char *)malloc(sizeof(char) * Generator::DATASET_SIZE * Generator::MAX_STR_LEN);
-    
+
     MPI_Gatherv(words, scatter_recv_buffer * Generator::MAX_STR_LEN, MPI_CHAR, Generator::ALL_WORDS, Generator::GATHER_RECV_COUNTS, Generator::GATHER_DISPLACEMENTS, MPI_CHAR, 0, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -48,9 +49,10 @@ int main(int argc, char **argv)
         Generator::WriteWords();
         end_time = MPI_Wtime();
         Generator::WorkingTime(start_time, end_time);
+
         delete generator;
         cout << endl << "<<<===========GENERATION END==========>>>" << endl;
-    } 
+    }
 
     MPI_Finalize();
     free(words);

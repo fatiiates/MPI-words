@@ -156,8 +156,6 @@ void Generator::WriteWords(){
                 break;
             f << (Generator::ALL_WORDS + i*Generator::MAX_STR_LEN)[j];
         }
-        // if (i+1 == Generator::DATASET_SIZE)
-        //     break;
         f << " ";
     }
     f.close();

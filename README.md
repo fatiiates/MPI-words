@@ -1,6 +1,6 @@
-# Word Generator AND Word Counter
+# Word Generator ve Word Counter
 
-# Description
+# Açıklama
 
 Bu depo birisi kelime üretici diğeri kelime sayıcı olmak üzere iki farklı uygulama içerir. Kelime üretici C++ üzerinde MPI kütüphanesi kullanılarak geliştirilmiştir. Kelime sayıcı ise Go üzerinde MapReduce algoritması ile geliştirilmiştir. Geliştirme ortamlarının kurulumlarına ve uygulama detaylarına aşağıdan erişebilirsiniz.
 
@@ -16,7 +16,7 @@ Bu depo birisi kelime üretici diğeri kelime sayıcı olmak üzere iki farklı 
 **Make**
 - make -> ^4.2.1
 
-# Installation
+# Kurulum
 
 ## Ubuntu 20.04
 
@@ -79,7 +79,7 @@ Makefile dosyası size kolay kullanım sağlayan bir CLI komut seti sunar.
 
 Kullanılabilir değişkenler:
 
-- DATASET_SIZE -> min= 1, max=1M, default=50K
+- DATASET_SIZE -> min= 1, max=10M, default=50K
 - MAX_STR_LEN -> min=2, max=100, default=10
 - MIN_STR_LEN -> min=1, max=100, default=2
 - GENERATED_FILE_PATH -> Boş olamaz, doğru bir dosya yolu olmalı
@@ -88,7 +88,7 @@ Kullanılabilir değişkenler:
 
 Kullanılacak process sayısını belirtir. Hem Generator hem de Counter için geçerlidir. 
 
-**Kısıtlar**: 1 <= X <= Makinenizin sınırı, varsayılan değer=1
+**Kısıtlar**: 1 <= X <= 100, varsayılan değer=1
 
 - DATASET_SIZE değişkeninden küçük olamaz.
 
@@ -123,7 +123,7 @@ Kelimelerin sayılması istenen dosyanın yolunu özel olarak belirtmek için ku
 
 **Kısıtlar**: X > 0, varsayılan değer=son üretilen dosya
 
-# RUN
+# Çalıştırmak
 
 Her iki uygulamayı da son hale göre derlemek ve varsayılan değerler ile çalıştırmak isterseniz aşağıdaki komutu deponun root dizininde çalıştırabilirsiniz.
 
@@ -168,3 +168,34 @@ Sadece Counter uygulamasını özel bir dosya yolu vererek çalıştırmak için
 Sadece Counter uygulamasını derlemek ve çalıştırmak için
 
     make BR_counter WORLD_SIZE=10
+
+# Değerlendirme
+
+Ölçümlerin yapıldığı cihaz bilgileri:  
+
+- OS: Ubuntu 20.04.4 LTS x86_64  
+- Kernel: 5.13.0-44-generic  
+- Shell: zsh 5.8  
+- Terminal: gnome-terminal  
+- CPU: 11th Gen Intel i5-11400H
+- Memory: 16GB DDR4 3200 MHz
+
+## Generation
+
+Aşağıdaki grafikte 100 uzunluğunda 1000000 adet RASTGELE kelime üreten bir generatorun 1-100 arasında değişen process sayısına bağlı olarak zamana göre değişimini inceleyebilirsiniz.
+
+![generation_plot](https://user-images.githubusercontent.com/51250249/171634600-cd2fa92d-20bf-48ec-951b-a929efe2bf6d.png)
+
+- Sonuç olarak 17 process ile paralel çalıştıktan sonra parallelliği arttırmanın bu parametreler düzeyinde yararlı değil aksine zararlı olduğu görülüyor.
+
+## Counting
+
+Aşağıdaki grafikte 100 uzunluğunda 1000000 adeet kelimeye sahip bir dosyadan kelime sayma işlemini gerçekleştiren ve YAML dosyası olarak kaydeden bir counterın 1-100 aralığında değişen process sayısına bağlı olarak zamana göre değişimini inceleyebilirsiniz.
+
+![counting_plot](https://user-images.githubusercontent.com/51250249/171635158-e3b26071-90a0-4157-bd3a-82ba659236ed.png)
+
+- Generator grafiğine göre düzenli bir artış söz konusu değil.
+- Bu parametreler eşliğinde bu sefer 7 process ile paralel çalıştırıldıktan sonra daha da paralelleşmenin yararlı değil yine aksine zararlı olduğu görülüyor.
+
+
+NOT: Ölçümler C++ ve Go dillerinin farklılıklarına, çalıştırılabilir dosyalara verdiğimiz parametrelere, ölçümlerin yapıldığı yani bilgisayarımın o anlardaki statelerine göre değişkenlik gösteriyor.
