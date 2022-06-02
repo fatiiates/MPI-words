@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	fmt.Println("<<<==========COUNTING START=========>>>")
+	fmt.Println("<<<==========COUNTING START=========>>>\n")
 	start := time.Now()
 
 	counter, err := CounterConstructor()
@@ -14,5 +14,5 @@ func main() {
 	counter.Count()
 
 	WorkingTime(start)
-	fmt.Println("<<<===========COUNTING END==========>>>")
+	fmt.Println("\n<<<===========COUNTING END==========>>>")
 }

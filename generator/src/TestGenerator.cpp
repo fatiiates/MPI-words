@@ -49,7 +49,7 @@ int main(int argc, char **argv)
         end_time = MPI_Wtime();
         Generator::WorkingTime(start_time, end_time);
         delete generator;
-        cout << "<<<===========GENERATION END==========>>>" << endl;
+        cout << endl << "<<<===========GENERATION END==========>>>" << endl;
     } 
 
     MPI_Finalize();
