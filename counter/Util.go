@@ -173,13 +173,12 @@ func WriteResultsToFile(c *Counter) {
 	Check(err)
 	err = os.WriteFile(strings.Join([]string{COUNTING_RESULTS_PATH, filename}, "/"), yamlData, 0644)
 	Check(err)
-	// fmt.Println("Words written as counted to file", filename)
+	fmt.Println("Words written as counted to file", filename)
 }
 
 func WorkingTime(start_time time.Time) {
 	out := time.Since(start_time)
-	fmt.Println(out.Seconds())
-	// fmt.Println("That counting took", out.Seconds(), "seconds.")
+	fmt.Println("That counting took", out.Seconds(), "seconds.")
 }
 
 func Check(err error) {
